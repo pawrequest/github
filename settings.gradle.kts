@@ -1,5 +1,9 @@
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+dependencyResolutionManagement {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://github.com/pawrequest/github")
+        }
+        mavenCentral()
+    }
 }
-
-rootProject.name = "github"
