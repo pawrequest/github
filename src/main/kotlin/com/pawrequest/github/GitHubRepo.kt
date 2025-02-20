@@ -1,7 +1,7 @@
 package com.pawrequest.github
 
 import java.net.URI
-
+@Suppress("unused")
 open class GitHubRepo(
     open var name: String,
     open var user: GitHubUser,

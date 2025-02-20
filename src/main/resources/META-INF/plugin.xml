@@ -1,6 +1,6 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>pawrequest.github</id>
+    <id>com.pawrequest.github</id>
     <name>Github</name>
     <vendor>pawrequest</vendor>
 

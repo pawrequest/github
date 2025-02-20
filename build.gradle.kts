@@ -1,10 +1,9 @@
-import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 plugins {
     `maven-publish`
     id("java") // Java support
-    kotlin("jvm") version "2.1.10"
+    alias(libs.plugins.kotlin) // IntelliJ Platform Gradle Plugin
     alias(libs.plugins.intelliJPlatform) // IntelliJ Platform Gradle Plugin
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin

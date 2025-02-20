@@ -5,6 +5,7 @@ import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
 import java.util.*
 
@@ -18,6 +19,12 @@ open class GitHubRelease(
     var createdAt: Date, var publishedAt: Date
 ) {
     companion object {
+
+        fun fromUserNameAndRepoName(userName: String, repoName: String): GitHubRelease {
+            val uri = URI.create("https://api.github.com/repos/${userName}/${repoName}/releases/latest")
+            return fromURL(uri.toURL())
+
+        }
         @Throws(IOException::class)
         fun fromURL(releaseUrl: URL): GitHubRelease {
             println("Fetching Release from: $releaseUrl")
