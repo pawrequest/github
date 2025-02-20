@@ -1,11 +1,10 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
-
 plugins {
-    id("maven-publish")
+    `maven-publish`
     id("java") // Java support
-    alias(libs.plugins.kotlin) // Kotlin support
+    kotlin("jvm") version "2.1.10"
     alias(libs.plugins.intelliJPlatform) // IntelliJ Platform Gradle Plugin
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
@@ -30,7 +29,9 @@ repositories {
     }
 }
 
-// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
+
+
+//// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     testImplementation(libs.junit)
 
@@ -53,9 +54,37 @@ dependencies {
 
 
 
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/pawrequest/github")
+            credentials {
+                username = "pawrequest"
+                password = System.getenv("PUBLISH_TOKEN")
+            }
+        }
+    }
+
+
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])  // For Kotlin projects
+            groupId = "com.pawrequest"
+            artifactId = "github"
+            version = providers.gradleProperty("pluginVersion").get()
+        }
+    }
+}
+
+
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
     pluginConfiguration {
+
+        id = providers.gradleProperty("pluginID")
+        name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
 
         // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
@@ -71,18 +100,18 @@ intellijPlatform {
             }
         }
 
-        val changelog = project.changelog // local variable for configuration cache compatibility
-        // Get the latest available change notes from the changelog file
-        changeNotes = providers.gradleProperty("pluginVersion").map { pluginVersion ->
-            with(changelog) {
-                renderItem(
-                    (getOrNull(pluginVersion) ?: getUnreleased())
-                        .withHeader(false)
-                        .withEmptySections(false),
-                    Changelog.OutputType.HTML,
-                )
-            }
-        }
+//        val changelog = project.changelog // local variable for configuration cache compatibility
+//        // Get the latest available change notes from the changelog file
+//        changeNotes = providers.gradleProperty("pluginVersion").map { pluginVersion ->
+//            with(changelog) {
+//                renderItem(
+//                    (getOrNull(pluginVersion) ?: getUnreleased())
+//                        .withHeader(false)
+//                        .withEmptySections(false),
+//                    Changelog.OutputType.HTML,
+//                )
+//            }
+//        }
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
@@ -90,14 +119,16 @@ intellijPlatform {
         }
     }
 
-    signing {
-        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
-        privateKey = providers.environmentVariable("PRIVATE_KEY")
-        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
-    }
+//    signing {
+//        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+//        privateKey = providers.environmentVariable("PRIVATE_KEY")
+//        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+//    }
 
 
-    publishing {
+//
+//
+//    publishing {
 //        repositories {
 //            maven {
 //                name = "GitHubPackages"
@@ -108,13 +139,24 @@ intellijPlatform {
 //                }
 //            }
 //        }
-        token = providers.environmentVariable("PUBLISH_TOKEN")
-        // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
-        // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
-        // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels = providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
-    }
-
+//
+//        token = providers.environmentVariable("PUBLISH_TOKEN")
+////        // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
+////        // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
+////        // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
+//        channels = providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
+////    }
+//    }
+//
+//        publications {
+//            create<MavenPublication>("githubPlugin") {
+//                groupId = "pawrequest"          // Must match in consumer
+//                artifactId = "github"           // Must match in consumer
+//                version = "0.0.1"
+//                from(components["java"])
+//            }
+//        }
+//
     pluginVerification {
         ides {
             recommended()

@@ -1,4 +1,4 @@
-package github
+package com.pawrequest.github
 
 import com.google.gson.Gson
 import java.io.BufferedReader
@@ -8,19 +8,20 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.*
 
-class GitHubRelease(
-    var tag_name: String,
+@Suppress("unused")
+open class GitHubRelease(
+    var tagName: String,
     var assets: List<GitHubAsset>,
-    var url: URL, var assets_url: URL, var html_url: URL, var upload_url: URL,
+    var url: URL, var assetsUrl: URL, var htmlUrl: URL, var uploadUrl: URL,
     var id: Int,
-    var node_id: String,
-    var created_at: Date, var published_at: Date
+    var nodeId: String,
+    var createdAt: Date, var publishedAt: Date
 ) {
     companion object {
         @Throws(IOException::class)
-        fun fromURL(release_url: URL): GitHubRelease {
-            println("Fetching Release from: $release_url")
-            val connection = release_url.openConnection() as HttpURLConnection
+        fun fromURL(releaseUrl: URL): GitHubRelease {
+            println("Fetching Release from: $releaseUrl")
+            val connection = releaseUrl.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             connection.setRequestProperty("Accept", "application/json")
 
@@ -29,7 +30,7 @@ class GitHubRelease(
                 if (retry != null) {
                     println("Rate Limited. Retry after: $retry")
                 }
-                val x = "Failed to fetch latest release from " + release_url + " msg =" + connection.responseMessage
+                val x = "Failed to fetch latest release from " + releaseUrl + " msg =" + connection.responseMessage
                 println(x)
                 throw IOException(x)
             }
@@ -44,4 +45,5 @@ class GitHubRelease(
             }
         }
     }
+
 }
