@@ -70,7 +70,7 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])  // For Kotlin projects
-            groupId = "com.pawrequest"
+            groupId = providers.gradleProperty("pluginGroup").get()
             artifactId = "github"
             version = providers.gradleProperty("pluginVersion").get()
         }
