@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.asPath
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 plugins {
@@ -44,7 +45,7 @@ dependencies {
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
 
-        instrumentationTools()
+//        instrumentationTools()
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
@@ -69,7 +70,7 @@ publishing {
 
     publications {
         create<MavenPublication>("mavenJava") {
-            from(components["java"])  // For Kotlin projects
+            from(components["java"])
             groupId = providers.gradleProperty("pluginGroup").get()
             artifactId = "github"
             version = providers.gradleProperty("pluginVersion").get()
@@ -164,51 +165,50 @@ intellijPlatform {
 }
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-changelog {
-    groups.empty()
-    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
-}
+//changelog {
+//    groups.empty()
+//    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
+//}
 
 // Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
-kover {
-    reports {
-        total {
-            xml {
-                onCheck = true
-            }
-        }
-    }
-}
+//kover {
+//    reports {
+//        total {
+//            xml {
+//                onCheck = true
+//            }
+//        }
+//    }
+//}
 
-tasks {
-    wrapper {
-        gradleVersion = providers.gradleProperty("gradleVersion").get()
-    }
-
-    publishPlugin {
-        dependsOn(patchChangelog)
-    }
-}
-
-intellijPlatformTesting {
-    runIde {
-        register("runIdeForUiTests") {
-            task {
-                jvmArgumentProviders += CommandLineArgumentProvider {
-                    listOf(
-                        "-Drobot-server.port=8082",
-                        "-Dide.mac.message.dialogs.as.sheets=false",
-                        "-Djb.privacy.policy.text=<!--999.999-->",
-                        "-Djb.consents.confirmation.enabled=false",
-                    )
-                }
-            }
-
-            plugins {
-                robotServerPlugin()
-            }
-        }
-    }
-}
+//tasks {
+//    wrapper {
+//        gradleVersion = providers.gradleProperty("gradleVersion").get()
+//    }
+//
+//    publishPlugin {
+//        dependsOn(patchChangelog)
+//    }
+//}
+//intellijPlatformTesting {
+//    runIde {
+//        register("runIdeForUiTests") {
+//            task {
+//                jvmArgumentProviders += CommandLineArgumentProvider {
+//                    listOf(
+//                        "-Drobot-server.port=8082",
+//                        "-Dide.mac.message.dialogs.as.sheets=false",
+//                        "-Djb.privacy.policy.text=<!--999.999-->",
+//                        "-Djb.consents.confirmation.enabled=false",
+//                    )
+//                }
+//            }
+//
+//            plugins {
+//                robotServerPlugin()
+//            }
+//        }
+//    }
+//}
 
 

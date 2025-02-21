@@ -15,9 +15,9 @@ open class GitHubRepo(
         return repoUri.resolve("download/$version/$assetName")
     }
 
-    fun latestRelease(): GitHubRelease {
-        return GitHubRelease.fromURL(latestReleaseApiUri.toURL())
-    }
+//    fun latestRelease(): GitHubRelease {
+//        return GitHubRelease.fromURL(latestReleaseApiUri.toURL())
+//    }
 
 
     companion object {
