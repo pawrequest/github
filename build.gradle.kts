@@ -16,9 +16,13 @@ plugins {
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 val thisArtifactID = providers.gradleProperty("pluginRepositoryUrl").get().substringAfterLast("/")
-//val thisArtifactID = providers.gradleProperty("pluginID").get().substringAfter(providers.gradleProperty("pluginGroup").get() + ".")
-val thisVendorName = providers.gradleProperty("pluginGroup").get().substringAfter("com.")
-val theseCustomDependencies = providers.gradleProperty("customDependencies").get().split(",")
+val thisVendorName = providers.gradleProperty("pluginRepositoryUrl").get().substringBeforeLast("/").substringAfterLast("/")
+//val theseCustomDependencies = providers.gradleProperty("customDependencies").orElse("").get().split(",")
+val theseCustomDependencies = providers.gradleProperty("customDependencies")
+    .orNull // Returns null if the property is missing
+    ?.split(",") // Split only if the property is present
+    ?: emptyList() // Provide an empty list if the property is missing
+
 
 fun githubPackageUri(vendor: String = thisVendorName, artifactID: String = thisArtifactID): URI {
     return URI.create("https://maven.pkg.github.com/$vendor/$artifactID")
