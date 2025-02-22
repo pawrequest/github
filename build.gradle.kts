@@ -1,6 +1,7 @@
-import org.gradle.kotlin.dsl.asPath
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import java.net.URI
+
 plugins {
     `maven-publish`
     id("java") // Java support
@@ -11,8 +12,79 @@ plugins {
     alias(libs.plugins.kover) // Gradle Kover Plugin
 }
 
+
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
+val vendorName = providers.gradleProperty("pluginGroup").get().substringAfter("com.")
+//val thisRepo = GithubRepoUrl(providers.gradleProperty("artifactID").get())
+val thisPackageUri = GithubPackageUri(providers.gradleProperty("artifactID").get())
+val customDependenciesProps = providers.gradleProperty("customDependencies").get().split(",")
+
+//val pawtestPackageUri = URI.create("https://maven.pkg.github.com/${providers.gradleProperty("vendorName").get()}/${providers.gradleProperty("artifactID").get()}")
+
+//val pawtestPackageUri = URI.create("https://maven.pkg.github.com/")
+//val pawtestPackageUri = URI.create("https://maven.pkg.github.com/pawrequest/pawtest")
+//val pawtestPackageUri = GithubPackageUri("pawtest", vendorName)
+
+fun MavenGitHubPackage(repositoryHandler: RepositoryHandler, uri: URI) {
+    repositoryHandler.maven {
+        url = uri
+        name = "GitHubPackages"
+
+        credentials {
+            username = System.getenv("GITHUB_USERNAME")
+            password = System.getenv("PUBLISH_TOKEN")
+        }
+    }
+}
+
+fun MakeMavenRepo(publicationContainer: PublicationContainer) {
+    publicationContainer.create<MavenPublication>("mavenJava") {
+        from(components["java"])
+        groupId = providers.gradleProperty("pluginGroup").get()
+        artifactId = providers.gradleProperty("artifactID").get()
+        version = providers.gradleProperty("pluginVersion").get()
+    }
+}
+
+
+fun GithubRepoUrl(artifactID: String, vendor: String = vendorName): URI {
+    return URI.create("https://github.com/$vendor/$artifactID")
+}
+
+fun GithubPackageUri(artifactID: String, vendor: String = vendorName): URI {
+    return URI.create("https://maven.pkg.github.com/$vendor/$artifactID")
+}
+
+
+fun getCustomDependencies(): List<String> {
+    val imps = mutableListOf<String>()
+    for (dep in customDependenciesProps) {
+        val depVals = dep.split(" ")
+        val imp = "${depVals[2]}:${depVals[1]}:${depVals[3]}"
+        imps.add(imp)
+    }
+    return imps
+}
+
+//fun configureCustomRepos() {
+//    for (dep in customDependenciesProps) {
+//        val depVals = dep.split(" ")
+//        val repo = GithubPackageUri(depVals[1], depVals[0])
+//        MavenGitHubPackage(this, repo)
+//    }
+//}
+
+fun getCustomRepos(): List<URI> {
+    val repos = mutableListOf<URI>()
+    for (dep in customDependenciesProps) {
+        val depVals = dep.split(" ")
+        val repo = GithubPackageUri(depVals[1], depVals[0])
+        repos.add(repo)
+    }
+    return repos
+}
+
 
 // Set the JVM language level used to build the project.
 kotlin {
@@ -22,18 +94,26 @@ kotlin {
 // Configure project's dependencies
 repositories {
     mavenCentral()
-
-    // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
+    getCustomRepos().forEach { repo ->
+        MavenGitHubPackage(this, repo)
+    }
     intellijPlatform {
         defaultRepositories()
     }
 }
 
 
-
 //// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     testImplementation(libs.junit)
+
+//    implementation("com.pawrequest:pawtest:0.0.1")
+
+    // Add custom dependencies dynamically
+    getCustomDependencies().forEach { dep ->
+        implementation(dep)
+    }
+
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
@@ -57,24 +137,10 @@ dependencies {
 
 publishing {
     repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/pawrequest/github")
-            credentials {
-                username = "pawrequest"
-                password = System.getenv("PUBLISH_TOKEN")
-            }
-        }
+        MavenGitHubPackage(this, thisPackageUri)
     }
-
-
     publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-            groupId = providers.gradleProperty("pluginGroup").get()
-            artifactId = "github"
-            version = providers.gradleProperty("pluginVersion").get()
-        }
+        MakeMavenRepo(this)
     }
 }
 
@@ -83,7 +149,7 @@ publishing {
 intellijPlatform {
     pluginConfiguration {
 
-        id = providers.gradleProperty("pluginID")
+        id = providers.gradleProperty("pluginID").get()
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
 
@@ -100,18 +166,6 @@ intellijPlatform {
             }
         }
 
-//        val changelog = project.changelog // local variable for configuration cache compatibility
-//        // Get the latest available change notes from the changelog file
-//        changeNotes = providers.gradleProperty("pluginVersion").map { pluginVersion ->
-//            with(changelog) {
-//                renderItem(
-//                    (getOrNull(pluginVersion) ?: getUnreleased())
-//                        .withHeader(false)
-//                        .withEmptySections(false),
-//                    Changelog.OutputType.HTML,
-//                )
-//            }
-//        }
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
@@ -119,96 +173,11 @@ intellijPlatform {
         }
     }
 
-//    signing {
-//        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
-//        privateKey = providers.environmentVariable("PRIVATE_KEY")
-//        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
-//    }
-
-
-//
-//
-//    publishing {
-//        repositories {
-//            maven {
-//                name = "GitHubPackages"
-//                url = uri("https://maven.pkg.github.com/pawrequest/github")
-//                credentials {
-//                    username = "pawrequest"
-//                    password = System.getenv("PUBLISH_TOKEN")
-//                }
-//            }
-//        }
-//
-//        token = providers.environmentVariable("PUBLISH_TOKEN")
-////        // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
-////        // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
-////        // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-//        channels = providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
-////    }
-//    }
-//
-//        publications {
-//            create<MavenPublication>("githubPlugin") {
-//                groupId = "pawrequest"          // Must match in consumer
-//                artifactId = "github"           // Must match in consumer
-//                version = "0.0.1"
-//                from(components["java"])
-//            }
-//        }
-//
     pluginVerification {
         ides {
             recommended()
         }
     }
 }
-
-// Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-//changelog {
-//    groups.empty()
-//    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
-//}
-
-// Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
-//kover {
-//    reports {
-//        total {
-//            xml {
-//                onCheck = true
-//            }
-//        }
-//    }
-//}
-
-//tasks {
-//    wrapper {
-//        gradleVersion = providers.gradleProperty("gradleVersion").get()
-//    }
-//
-//    publishPlugin {
-//        dependsOn(patchChangelog)
-//    }
-//}
-//intellijPlatformTesting {
-//    runIde {
-//        register("runIdeForUiTests") {
-//            task {
-//                jvmArgumentProviders += CommandLineArgumentProvider {
-//                    listOf(
-//                        "-Drobot-server.port=8082",
-//                        "-Dide.mac.message.dialogs.as.sheets=false",
-//                        "-Djb.privacy.policy.text=<!--999.999-->",
-//                        "-Djb.consents.confirmation.enabled=false",
-//                    )
-//                }
-//            }
-//
-//            plugins {
-//                robotServerPlugin()
-//            }
-//        }
-//    }
-//}
 
 

@@ -1,6 +1,7 @@
 [versions]
 # libraries
 junit = "4.13.2"
+pawtest = "0.0.1"
 
 # plugins
 changelog = "2.2.1"
@@ -18,3 +19,4 @@ intelliJPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "inte
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 qodana = { id = "org.jetbrains.qodana", version.ref = "qodana" }
+pawtest = { id = "com.github.pawtest", version.ref = "pawtest" }
