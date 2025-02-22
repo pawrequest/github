@@ -15,18 +15,16 @@ plugins {
 
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
-val vendorName = providers.gradleProperty("pluginGroup").get().substringAfter("com.")
-//val thisRepo = GithubRepoUrl(providers.gradleProperty("artifactID").get())
-val thisPackageUri = GithubPackageUri(providers.gradleProperty("artifactID").get())
-val customDependenciesProps = providers.gradleProperty("customDependencies").get().split(",")
+val thisArtifactID = providers.gradleProperty("pluginRepositoryUrl").get().substringAfterLast("/")
+//val thisArtifactID = providers.gradleProperty("pluginID").get().substringAfter(providers.gradleProperty("pluginGroup").get() + ".")
+val thisVendorName = providers.gradleProperty("pluginGroup").get().substringAfter("com.")
+val theseCustomDependencies = providers.gradleProperty("customDependencies").get().split(",")
 
-//val pawtestPackageUri = URI.create("https://maven.pkg.github.com/${providers.gradleProperty("vendorName").get()}/${providers.gradleProperty("artifactID").get()}")
+fun githubPackageUri(vendor: String = thisVendorName, artifactID: String = thisArtifactID): URI {
+    return URI.create("https://maven.pkg.github.com/$vendor/$artifactID")
+}
 
-//val pawtestPackageUri = URI.create("https://maven.pkg.github.com/")
-//val pawtestPackageUri = URI.create("https://maven.pkg.github.com/pawrequest/pawtest")
-//val pawtestPackageUri = GithubPackageUri("pawtest", vendorName)
-
-fun MavenGitHubPackage(repositoryHandler: RepositoryHandler, uri: URI) {
+fun addRepoUri(repositoryHandler: RepositoryHandler, uri: URI) {
     repositoryHandler.maven {
         url = uri
         name = "GitHubPackages"
@@ -38,52 +36,36 @@ fun MavenGitHubPackage(repositoryHandler: RepositoryHandler, uri: URI) {
     }
 }
 
-fun MakeMavenRepo(publicationContainer: PublicationContainer) {
+fun addCustomRepos(repositoryHandler: RepositoryHandler) {
+    for (dep in theseCustomDependencies) {
+        val depVals = dep.split(" ")
+        val repoUri = githubPackageUri(depVals[0], depVals[1])
+        addRepoUri(repositoryHandler, repoUri)
+    }
+}
+
+
+
+fun addCustomDependencies(dependencyHandler: DependencyHandler) {
+    for (dep in theseCustomDependencies) {
+        val depVals = dep.split(" ")
+        val imp = "${depVals[2]}:${depVals[1]}:${depVals[3]}"
+        dependencyHandler.implementation(imp)
+    }
+}
+
+
+fun addPublication(publicationContainer: PublicationContainer) {
     publicationContainer.create<MavenPublication>("mavenJava") {
         from(components["java"])
         groupId = providers.gradleProperty("pluginGroup").get()
-        artifactId = providers.gradleProperty("artifactID").get()
+        artifactId = thisArtifactID
         version = providers.gradleProperty("pluginVersion").get()
     }
 }
 
 
-fun GithubRepoUrl(artifactID: String, vendor: String = vendorName): URI {
-    return URI.create("https://github.com/$vendor/$artifactID")
-}
 
-fun GithubPackageUri(artifactID: String, vendor: String = vendorName): URI {
-    return URI.create("https://maven.pkg.github.com/$vendor/$artifactID")
-}
-
-
-fun getCustomDependencies(): List<String> {
-    val imps = mutableListOf<String>()
-    for (dep in customDependenciesProps) {
-        val depVals = dep.split(" ")
-        val imp = "${depVals[2]}:${depVals[1]}:${depVals[3]}"
-        imps.add(imp)
-    }
-    return imps
-}
-
-//fun configureCustomRepos() {
-//    for (dep in customDependenciesProps) {
-//        val depVals = dep.split(" ")
-//        val repo = GithubPackageUri(depVals[1], depVals[0])
-//        MavenGitHubPackage(this, repo)
-//    }
-//}
-
-fun getCustomRepos(): List<URI> {
-    val repos = mutableListOf<URI>()
-    for (dep in customDependenciesProps) {
-        val depVals = dep.split(" ")
-        val repo = GithubPackageUri(depVals[1], depVals[0])
-        repos.add(repo)
-    }
-    return repos
-}
 
 
 // Set the JVM language level used to build the project.
@@ -94,9 +76,7 @@ kotlin {
 // Configure project's dependencies
 repositories {
     mavenCentral()
-    getCustomRepos().forEach { repo ->
-        MavenGitHubPackage(this, repo)
-    }
+    addCustomRepos(this)
     intellijPlatform {
         defaultRepositories()
     }
@@ -106,14 +86,7 @@ repositories {
 //// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     testImplementation(libs.junit)
-
-//    implementation("com.pawrequest:pawtest:0.0.1")
-
-    // Add custom dependencies dynamically
-    getCustomDependencies().forEach { dep ->
-        implementation(dep)
-    }
-
+    addCustomDependencies(this)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
@@ -137,10 +110,10 @@ dependencies {
 
 publishing {
     repositories {
-        MavenGitHubPackage(this, thisPackageUri)
+        addRepoUri(this, githubPackageUri())
     }
     publications {
-        MakeMavenRepo(this)
+        addPublication(this)
     }
 }
 
@@ -148,9 +121,6 @@ publishing {
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
     pluginConfiguration {
-
-        id = providers.gradleProperty("pluginID").get()
-        name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
 
         // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
