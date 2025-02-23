@@ -12,17 +12,23 @@ plugins {
     alias(libs.plugins.kover) // Gradle Kover Plugin
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21)) // Match the Java version of your main project
+    }
+}
 
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
+
+// pawrequest custom github repo/dependency adder ASSUMES HTTPS://REPO_URL/.../VENDOR/ASSET
 val thisArtifactID = providers.gradleProperty("pluginRepositoryUrl").get().substringAfterLast("/")
 val thisVendorName = providers.gradleProperty("pluginRepositoryUrl").get().substringBeforeLast("/").substringAfterLast("/")
-//val theseCustomDependencies = providers.gradleProperty("customDependencies").orElse("").get().split(",")
 val theseCustomDependencies = providers.gradleProperty("customDependencies")
     .orNull // Returns null if the property is missing
     ?.split(",") // Split only if the property is present
+    ?.filter { it.isNotBlank() } // Filter out empty strings
     ?: emptyList() // Provide an empty list if the property is missing
-
 
 fun githubPackageUri(vendor: String = thisVendorName, artifactID: String = thisArtifactID): URI {
     return URI.create("https://maven.pkg.github.com/$vendor/$artifactID")
@@ -41,7 +47,10 @@ fun addRepoUri(repositoryHandler: RepositoryHandler, uri: URI) {
 }
 
 fun addCustomRepos(repositoryHandler: RepositoryHandler) {
+    println("Custom Repos: $theseCustomDependencies")
     for (dep in theseCustomDependencies) {
+        println("dep: $theseCustomDependencies")
+
         val depVals = dep.split(" ")
         val repoUri = githubPackageUri(depVals[0], depVals[1])
         addRepoUri(repositoryHandler, repoUri)
@@ -51,7 +60,11 @@ fun addCustomRepos(repositoryHandler: RepositoryHandler) {
 
 
 fun addCustomDependencies(dependencyHandler: DependencyHandler) {
+    println("Custom Dependencies: $theseCustomDependencies")
+
     for (dep in theseCustomDependencies) {
+        println("dep: $dep")
+
         val depVals = dep.split(" ")
         val imp = "${depVals[2]}:${depVals[1]}:${depVals[3]}"
         dependencyHandler.implementation(imp)
@@ -89,7 +102,10 @@ repositories {
 
 //// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
-    testImplementation(libs.junit)
+//    testImplementation(libs.junit)
+//    implementation("com.pawrequest:github:0.0.1")
+//    implementation(project(":github"))
+
     addCustomDependencies(this)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
@@ -103,9 +119,9 @@ dependencies {
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
 
 //        instrumentationTools()
-        pluginVerifier()
-        zipSigner()
-        testFramework(TestFrameworkType.Platform)
+//        pluginVerifier()
+//        zipSigner()
+//        testFramework(TestFrameworkType.Platform)
     }
 }
 

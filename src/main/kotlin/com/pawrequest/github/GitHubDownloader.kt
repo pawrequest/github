@@ -24,7 +24,6 @@ fun downloadOrCache(cacheDir: Path, downloadUrl: URL): File {
         Files.copy(binaryFile.toPath(), cacheTarget, StandardCopyOption.REPLACE_EXISTING)
         return binaryFile
     }
-
 }
 
 fun downloadBinaryNoCache(downloadUrl: URL): File {
