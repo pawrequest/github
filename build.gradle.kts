@@ -1,3 +1,4 @@
+import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import java.net.URI
@@ -17,7 +18,9 @@ java {
         languageVersion.set(JavaLanguageVersion.of(21)) // Match the Java version of your main project
     }
 }
-
+kotlin {
+    jvmToolchain(21)
+}
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
@@ -46,6 +49,7 @@ fun addRepoUri(repositoryHandler: RepositoryHandler, uri: URI) {
     }
 }
 
+
 fun addCustomRepos(repositoryHandler: RepositoryHandler) {
     println("Custom Repos: $theseCustomDependencies")
     for (dep in theseCustomDependencies) {
@@ -57,6 +61,16 @@ fun addCustomRepos(repositoryHandler: RepositoryHandler) {
     }
 }
 
+
+
+publishing {
+    repositories {
+        addRepoUri(this, githubPackageUri())
+    }
+    publications {
+        addPublication(this)
+    }
+}
 
 
 fun addCustomDependencies(dependencyHandler: DependencyHandler) {
@@ -74,38 +88,32 @@ fun addCustomDependencies(dependencyHandler: DependencyHandler) {
 
 fun addPublication(publicationContainer: PublicationContainer) {
     publicationContainer.create<MavenPublication>("mavenJava") {
-        from(components["java"])
         groupId = providers.gradleProperty("pluginGroup").get()
-        artifactId = thisArtifactID
+        artifactId = "github"
         version = providers.gradleProperty("pluginVersion").get()
+
+        // Explicitly include the JAR artifact
+        artifact(tasks.jar.get().archiveFile) {
+            classifier = ""
+            extension = "jar"
+        }
     }
-}
-
-
-
-
-
-// Set the JVM language level used to build the project.
-kotlin {
-    jvmToolchain(21)
 }
 
 // Configure project's dependencies
 repositories {
     mavenCentral()
     addCustomRepos(this)
+
+    // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
     intellijPlatform {
         defaultRepositories()
     }
 }
 
-
-//// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
+// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
-//    testImplementation(libs.junit)
-//    implementation("com.pawrequest:github:0.0.1")
-//    implementation(project(":github"))
-
+    testImplementation(libs.junit)
     addCustomDependencies(this)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
@@ -118,25 +126,11 @@ dependencies {
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
 
-//        instrumentationTools()
-//        pluginVerifier()
-//        zipSigner()
-//        testFramework(TestFrameworkType.Platform)
+        pluginVerifier()
+        zipSigner()
+        testFramework(TestFrameworkType.Platform)
     }
 }
-
-
-
-
-publishing {
-    repositories {
-        addRepoUri(this, githubPackageUri())
-    }
-    publications {
-        addPublication(this)
-    }
-}
-
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
@@ -156,11 +150,37 @@ intellijPlatform {
             }
         }
 
+        val changelog = project.changelog // local variable for configuration cache compatibility
+        // Get the latest available change notes from the changelog file
+        changeNotes = providers.gradleProperty("pluginVersion").map { pluginVersion ->
+            with(changelog) {
+                renderItem(
+                    (getOrNull(pluginVersion) ?: getUnreleased())
+                        .withHeader(false)
+                        .withEmptySections(false),
+                    Changelog.OutputType.HTML,
+                )
+            }
+        }
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             untilBuild = providers.gradleProperty("pluginUntilBuild")
         }
+    }
+
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
+        // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
+        // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
+        channels = providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
     }
 
     pluginVerification {
@@ -170,4 +190,49 @@ intellijPlatform {
     }
 }
 
+// Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
+changelog {
+    groups.empty()
+    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
+}
 
+// Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
+kover {
+    reports {
+        total {
+            xml {
+                onCheck = true
+            }
+        }
+    }
+}
+tasks {
+    wrapper {
+        gradleVersion = providers.gradleProperty("gradleVersion").get()
+    }
+
+    publishPlugin {
+        dependsOn(patchChangelog)
+    }
+}
+
+intellijPlatformTesting {
+    runIde {
+        register("runIdeForUiTests") {
+            task {
+                jvmArgumentProviders += CommandLineArgumentProvider {
+                    listOf(
+                        "-Drobot-server.port=8082",
+                        "-Dide.mac.message.dialogs.as.sheets=false",
+                        "-Djb.privacy.policy.text=<!--999.999-->",
+                        "-Djb.consents.confirmation.enabled=false",
+                    )
+                }
+            }
+
+            plugins {
+                robotServerPlugin()
+            }
+        }
+    }
+}
