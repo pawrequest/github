@@ -5,8 +5,8 @@ plugins {
     id("java") // Java support
     alias(libs.plugins.kotlin) // IntelliJ Platform Gradle Plugin
 //    alias(libs.plugins.intelliJPlatform) // IntelliJ Platform Gradle Plugin
-    alias(libs.plugins.changelog) // Gradle Changelog Plugin
-    alias(libs.plugins.qodana) // Gradle Qodana Plugin
+//    alias(libs.plugins.changelog) // Gradle Changelog Plugin
+//    alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
 }
 
@@ -111,10 +111,10 @@ dependencies {
 
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-changelog {
-    groups.empty()
-    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
-}
+//changelog {
+//    groups.empty()
+//    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
+//}
 
 // Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
 kover {
