@@ -3,7 +3,7 @@
     <id>com.pawrequest.github</id>
     <name>Github</name>
     <vendor>pawrequest</vendor>
-    <version>0.0.19</version>
+    <version>0.0.1</version>
 
     <depends>com.intellij.modules.platform</depends>
 
