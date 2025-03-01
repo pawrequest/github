@@ -18,7 +18,7 @@ fun downloadOrCache(cacheDir: Path, downloadUrl: URL): File {
     } else {
         val cacheTarget = Paths.get(cacheDir.toString(), urlTail(downloadUrl))
 
-        println("Cached Asset Does Not Exist: $cachedAsset, fetching from $downloadUrl caching to $cachedAsset")
+        println("Cache miss, fetching from $downloadUrl to $cacheTarget")
         val binaryFile = downloadBinaryNoCache(downloadUrl)
         Files.createDirectories(cacheDir)
         Files.copy(binaryFile.toPath(), cacheTarget, StandardCopyOption.REPLACE_EXISTING)
