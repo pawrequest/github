@@ -5,5 +5,5 @@
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
 
 <!-- Plugin description -->
-GitHub helpers
+GitHub helpers for kotlin eg jetbrains plugins
 <!-- Plugin description end -->
